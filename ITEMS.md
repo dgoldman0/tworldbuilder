@@ -2,6 +2,12 @@
 In most of these economic games, buildings are fungible, at least within a given denomination. But in real life, buildings are not fungible. Every building is unique. So they should be unique in this game as well. This is "World Builder" after all. While buildings won't be standard TRC-10 or 20 tokens, they will essentially be on chain non-fungible tokens that can be traded between players.
 
 ## Building Types
+## Home
+<img src = "blank.png" width = "150px"></img>
+
+The home is an essential component of this game. Every player must have a home and can have exactly one home. It cannot be traded and it isn't purchased. It's generated as soon as the player registers. However, it can be modified in many ways.
+<hr/>
+
 ### Cart
 <img src = "blank.png" width = "150px"></img>
 
@@ -83,7 +89,7 @@ Cost: 100,000 TRX
 <hr/>
 
 ## Building Stats
-Each building will have its own unique stats. To start, there are the building types, like there are in other games. But a building can fall into disrepair. The state of the building will decline, from meticulous down to derelict. The condition declines each time profit is taken, except for automatic profit cashing when buying a new building. The worse the condition, the lower the profit. Not only does this mechanic simulate real life, it promotes holding off on taking profit.
+Each building will have its own unique stats. To start, there are the building types, like there are in other games. But a building can fall into disrepair. The state of the building will decline, from pristine down to derelict. The condition declines each time profit is taken, except for automatic profit cashing when buying a new building. The worse the condition, the lower the profit. Not only does this mechanic simulate real life, it promotes holding off on taking profit.
 
 # Items
 It would suck if there was no way to repair your buildings. That's why items will be needed. These items can do more than just repair a property though. Some items are consumable, like items that improve the condition of the building. Others will alter the building in other ways. There will be a market to purchase these items using WORLD tokens.
