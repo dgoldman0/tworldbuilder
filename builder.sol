@@ -30,6 +30,8 @@ contract WorldBuilder {
 
     uint public totalInvestors;
     uint public totalInvested;
+    uint public totalTaxes; // Total taxes paid
+    uint public currentTaxes; // Current tax pool
 
     // Work towards making buildings non-fungible
     enum BuildingType {Cart, Boutique, Shop, Mall, Bank, Skyscraper, Powerplant, Resort};
