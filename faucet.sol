@@ -38,6 +38,59 @@ contract WorldFaucet {
     boosted[msg.sender] += msg.value;
     boostTotal += msg.value;
     // Increase the prize and prize pool by 10 times the amount of TRX used to boost
+    prizeFund += 8 * mpragma solidity ^0.4.25;
+
+// This faucet contract will be version 0.1 of WorldBuilder
+// Aside from the basic drip feature, which requires going back to the site constantly, there is also a referral program and interest if the funds are left in the contract.
+// Moreover, there is a prize fund that people will be entered into simply by performing the drip operation.
+// In order to get a higher interest rate, people can pay TRX, which will help keep the contract funded, and will also give me a little bit of revenue. Boost will be from 0% up to 100 percentage point boost.
+
+contract WorldFaucet {
+  address parent = msg.sender;
+  mapping (address => bool) public registered;  // Is the user registered?
+  mapping (address => uint) public balance;     // Currentl balance
+  mapping (address => uint) public boosted;     // Total interest rate boost in TRX
+  mapping (address => uint) public lastBonus;   // Last time at which interest was received
+  uint public prizeFund;
+  uint public prizeReserve;
+  uint public dripsSinceLastPrize;
+  uint public tokenId = 1002567;
+  uint public reserved; // Amount reserved for balance, etc.
+  uint public lastDrip; // When the last drip occurred
+  uint public totalInvestors; // Total number of people who have registered
+  uint public totalGiven;    // Total withdrawn less total added
+  uint public boostTotal;  // Total amount given to boost interest
+  uint isPrizeAvailable;
+  event Registered(address user);
+  event WonPrize(address user);
+
+  // Modifiers that I found useful from the builder.sol contract
+  modifier notContract() {
+      lastSender = msg.sender;
+      lastOrigin = tx.origin;
+      require(lastSender == lastOrigin);
+      _;
+  }
+
+  modifier onlyOwner() {
+      require(msg.sender == parent);
+      _;
+  }
+
+  // Update the balance of an address and add it to the reserved amount
+  function _updateBalance(address addr, uint amount) {
+      balance[addr] += amount;
+      reserved += amount;
+  }
+
+  // To make this part more game like, the boost could be based on how much people have contributed in total. It would make it a competition.
+  function boost() external payable {
+    // The boost fee goes to the contract creator
+    require(msg.value > 0, "You have to give TRX to boost.");
+    parent.transfer(msg.value);
+    boosted[msg.sender] += msg.value;
+    boostTotal += msg.value;
+    // Increase the prize and prize pool by 10 times the amount of TRX used to boost
     prizeFund += 8 * msg.value;
     reserveFund += 2 * msg.value;
   }
@@ -47,7 +100,7 @@ contract WorldFaucet {
   }
 
   // If a person wants to deposit funds to get interest, they can!
-  function deposit() external {
+  function deposit() external payable {
     require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
     require(msg.tokenid == tokenId, "You sent the wrong token.");
     _updateBalance(msg.sender, msg.tokenvalue);
@@ -139,12 +192,12 @@ contract WorldFaucet {
   }
 
   // Return the available balance of WRLD, taking into account the amount that's reserved and in the prize pools
-  function availableBalance() public view returns (uint) {
+  function getAvailableBalance() public view returns (uint) {
     return address(this).tokenBalance(tokenId) - reserved - getPrizeFund - reserveFund;
   }
 
   // Pull tokens from the contract
-  function withdrawTokens() payable external {
+  function withdrawTokens() external {
       uint amount = balance[msg.sender];
       // If there aren't enough tokens available, give what is available.
       uint max = address(this).tokenBalance(tokenId);
