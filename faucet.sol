@@ -127,12 +127,12 @@ contract WorldFaucet {
 
   // If the prize is up for grabs, give it!
   function getPrize() external {
-    if (prizeAvailable() && prizeFund > 0)
+    if (checkPrizeAvailable() && prizeFund > 0)
       _getPrizeFund(msg.sender);
   }
 
   // If the current drips since last prize is less than 1,000 less twice the number of seconds since the last drip, give prize.
-  function prizeAvailable() {
+  function checkPrizeAvailable() public view returns (bool) {
     if (isPrizeAvailable) return true;
     isPrizeAvailable = dripsSinceLastPrize > (1000 - 2 * ((now - lastDrip) * 1 seconds));
     return isPrizeAvailable;
@@ -173,16 +173,19 @@ contract WorldFaucet {
       _register(referrerAddress);
   }
 
+  // Fallback function
+  function () external payable {}
+
   // Functions to pull tokens and TRX that might accidentally be sent to the contract address. The only token that cannot be pulled, even by the contract creator, is WRLD.
 
   // Transfer all tron in the account into the contract creator's account
-  function superWithdrawTRX() external {
+  function superWithdrawTRX() external payable {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
     msg.sender.transfer(address(this).getBalance());
   }
 
   // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it, under most conditions...
-  function superWithdrawTRC(uint tid) external {
+  function superWithdrawTRC(uint tid) external payable {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
 
     // If the contract is inactive for over ONE WEEK, then the parent address can withdraw WRLD!
