@@ -17,22 +17,22 @@ contract WorldFaucet {
   uint lastDrip; // When the last drip occurred
   uint totalInvestors; // Total number of people who have registered
   uint totalGiven;    // Total withdrawn less total added
-
-  // To make this part more game like, the boost could be based on how much people have contributed in total. It would make it a competition.
-  function boost() external {
-    // Don't boost if the result would push the amount over 100%
-    require(boosted[msg.sender] + msg.value < 1000, "The boost would be above the allowed 100%.");
-
-    // The boost fee goes to the contract creator
-    parent.transfer(msg.value);
-
-    boosted[msg.sender] += msg.value;
-  }
+  uint boostTotal;  // Total amount given to boost interest
+  event Registered(address user);
 
   // Update the balance of an address and add it to the reserved amount
   function _updateBalance(address addr, uint amount) {
       balance[addr] += amount;
       reserved += amount;
+  }
+
+  // To make this part more game like, the boost could be based on how much people have contributed in total. It would make it a competition.
+  function boost() external {
+    // The boost fee goes to the contract creator
+    require(msg.value > 0, "You have to give TRX to boost.");
+    parent.transfer(msg.value);
+    boosted[msg.sender] += msg.value;
+    boostTotal += msg.value;
   }
 
   function getBalance() external {
@@ -47,6 +47,26 @@ contract WorldFaucet {
     totalGiven = totalGiven - msg.tokenvalue;
   }
 
+  function getBoost() public view returns (uint) {
+    return _getBoost(msg.sender);
+  }
+
+  function _getBoost(address user) {
+    // Calculate boost percentage, up to 100 percentage points
+    // User Contribution % : Bonus
+    // 100%   : 100%
+    // 50%    : 99%
+    // 25%    : 98%
+    // 12.5%  : 97%
+    // ...
+    uint boost = 0;
+    if (boosted[user] > 0) {
+      boost = 100 - (boostTotal / boosted[user] - 1);
+      if (boost < 0) boost = 0;
+    }
+    return boost;
+  }
+
   // Drip and at the same time calculate interest on stored funds
   // Adding some randomness would make it more game-like
   function drip(referrerAddress) external {
@@ -55,15 +75,12 @@ contract WorldFaucet {
       lastDrip = now;
       address user = msg.sender;
 
-      // Increase the interest rate by one percentage point per 10 TRX, up to 100%
-      uint boost = boosted[user] / 10;
-
-      // This shouldn't be necessary because boost won't allow the amount to go above 100%, but just in case.
-      if (boost > 100) boost = 100;
+      uint boost = _getBoost(user);
 
       // I use seconds to reduce rounding error. One thing to note is that this method updates the interest rate whenever a drip occurs.
       // What this situation means is that compounding occurs more frequently the more often the user ends up using the faucet.
       uint diff = (start - lastDrip[msg.sender]) * 1 seconds
+
       _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
 
       // Perform drip
