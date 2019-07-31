@@ -90,20 +90,25 @@ contract WorldFaucet {
 
       _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
 
-      _updateBalance(user, 2);
+      uint drop = (start - lastDrip) * 1 seconds;
+      _updateBalance(user, max(2, drop));
       lastBonus[user] = start;
 
       // Give the referrer one WRLD as a bonus
       if (referrers[msg.sender] != 0x0) {
-          _updateBalance(msg.sender, 1);
+          _updateBalance(msg.sender, max(1, drop / 2));
       }
 
       // Add to prize fund
-      prizeFund += 9;
-      prizeReserve += 1;
+      prizeFund += max(drop * 2 / 30, 6);
+      prizeReserve += max(drop / 30, 3);
 
       dripsSinceLastPrize++;
       lastDrip = now;
+  }
+
+  function max(uint a, uint b) private pure returns (uint) {
+      return a > b ? a : b;
   }
 
   // Register the user in the database
