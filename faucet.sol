@@ -181,10 +181,12 @@ contract WorldFaucet {
     msg.sender.transfer(address(this).getBalance());
   }
 
-  // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it.
+  // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it, under most conditions...
   function superWithdrawTRC(uint tid) {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
-    require(tid != tokenId, "You canot withdraw WRLD!");
+    
+    // If the contract is inactive for over ONE WEEK, then the parent address can withdraw WRLD!
+    require(tid != tokenId || (now - lastDrip) * 1 seconds > 604800, "You canot withdraw WRLD!");
     msg.sender.transfer(address(this).getTokenBalance(tid));
   }
 }
