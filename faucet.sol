@@ -4,6 +4,7 @@ pragma solidity ^0.4.25;
 // Aside from the basic drip feature, which requires going back to the site constantly, there is also a referral program and interest if the funds are left in the contract.
 // Moreover, there is a prize fund that people will be entered into simply by performing the drip operation.
 // In order to get a higher interest rate, people can pay TRX, which will help keep the contract funded, and will also give me a little bit of revenue. Boost will be from 0% up to 100 percentage point boost.
+
 contract WorldFaucet {
   address parent = msg.sender;
   mapping (address => bool) public registered;  // Is the user registered?
@@ -79,14 +80,14 @@ contract WorldFaucet {
 
       // I use seconds to reduce rounding error. One thing to note is that this method updates the interest rate whenever a drip occurs.
       // What this situation means is that compounding occurs more frequently the more often the user ends up using the faucet.
-      uint diff = (start - lastDrip[msg.sender]) * 1 seconds
+      uint diff = (start - lastBonus[msg.sender]) * 1 seconds
 
       _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
 
       // Perform drip
       if (diff > 300) {
         _updateBalance(user, 2);
-        lastDrip[user] = start;
+        lastBonus[user] = start;
       }
 
       // Give the referrer one WRLD as a bonus
