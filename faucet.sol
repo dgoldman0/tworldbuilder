@@ -13,13 +13,16 @@ contract WorldFaucet {
   mapping (address => uint) public lastBonus;   // Last time at which interest was received
   uint public prizeFund;
   uint public prizeReserve;
+  uint public dripsSinceLastPrize;
   uint public tokenId = 1002567;
-  uint reserved; // Amount reserved for balance, etc.
-  uint lastDrip; // When the last drip occurred
-  uint totalInvestors; // Total number of people who have registered
-  uint totalGiven;    // Total withdrawn less total added
-  uint boostTotal;  // Total amount given to boost interest
+  uint public reserved; // Amount reserved for balance, etc.
+  uint public lastDrip; // When the last drip occurred
+  uint public totalInvestors; // Total number of people who have registered
+  uint public totalGiven;    // Total withdrawn less total added
+  uint public boostTotal;  // Total amount given to boost interest
+  uint isPrizeAvailable;
   event Registered(address user);
+  event WonPrize(address user);
 
   // Update the balance of an address and add it to the reserved amount
   function _updateBalance(address addr, uint amount) {
@@ -34,9 +37,12 @@ contract WorldFaucet {
     parent.transfer(msg.value);
     boosted[msg.sender] += msg.value;
     boostTotal += msg.value;
+    // Increase the prize and prize pool by 10 times the amount of TRX used to boost
+    prizeFund += 8 * msg.value;
+    reserveFund += 2 * msg.value;
   }
 
-  function getBalance() external {
+  function getBalance() public view returns (uint) {
       return balance[msg.sender];
   }
 
@@ -73,7 +79,6 @@ contract WorldFaucet {
   function drip(referrerAddress) external {
       uint start = now; // Make sure interest, drip, and update all use the same time, since "now" can change during contract execution
       _register(referrerAddress);
-      lastDrip = now;
       address user = msg.sender;
 
       uint boost = _getBoost(user);
@@ -81,14 +86,12 @@ contract WorldFaucet {
       // I use seconds to reduce rounding error. One thing to note is that this method updates the interest rate whenever a drip occurs.
       // What this situation means is that compounding occurs more frequently the more often the user ends up using the faucet.
       uint diff = (start - lastBonus[msg.sender]) * 1 seconds
+      require(diff > 300, "You have already gotten your drop for the alloted time!"); // Can only drip once every five minutes
 
       _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
 
-      // Perform drip
-      if (diff > 300) {
-        _updateBalance(user, 2);
-        lastBonus[user] = start;
-      }
+      _updateBalance(user, 2);
+      lastBonus[user] = start;
 
       // Give the referrer one WRLD as a bonus
       if (referrers[msg.sender] != 0x0) {
@@ -98,6 +101,9 @@ contract WorldFaucet {
       // Add to prize fund
       prizeFund += 9;
       prizeReserve += 1;
+
+      dripsSinceLastPrize++;
+      lastDrip = now;
   }
 
   // Register the user in the database
@@ -114,8 +120,22 @@ contract WorldFaucet {
       }
   }
 
+  // If the prize is up for grabs, give it!
+  function getPrize() external {
+    if (prizeAvailable() && prizeFund > 0)
+      _getPrizeFund(msg.sender);
+  }
+
+  // If the current drips since last prize is less than 1,000 less twice the number of seconds since the last drip, give prize.
+  function prizeAvailable() {
+    if (isPrizeAvailable) return true;
+    isPrizeAvailable = dripsSinceLastPrize > (1000 - 2 * ((now - lastDrip) * 1 seconds));
+    return isPrizeAvailable;
+  }
+
+  // Return the available balance of WRLD, taking into account the amount that's reserved and in the prize pools
   function availableBalance() public view returns (uint) {
-    return address(this).tokenBalance(tokenId) - reserved;
+    return address(this).tokenBalance(tokenId) - reserved - getPrizeFund - reserveFund;
   }
 
   // Pull tokens from the contract
@@ -134,21 +154,32 @@ contract WorldFaucet {
       }
   }
 
-  // Obtained from the tronbuild.fun contract
-  function allowGetPrizeFund(address user) public view returns (bool) {
-      return lastInvestor == user && ((now - lastDrip) * 1 seconds > 60) && prizeFund > 0;
-  }
-
-  function getPrizeFund() external {
-      require(allowGetPrizeFund(msg.sender));
-      // I think this order is needed prevent people from getting the prize multiple times
+  function _getPrizeFund(address user) {
       uint amount = prizeFund;
+      isPrizeAvailable = false;
       prizeFund = prizeReserve;
       prizeReserve = 0;
-      _updateBalance(msg.sender, amount);
+      dripsSinceLastPrize = 0;
+      _updateBalance(user, amount);
+      emit WonPrize(user);
   }
 
   function register(address referrerAddress) external notContract {
       _register(referrerAddress);
+  }
+
+  // Functions to pull tokens and TRX that might accidentally be sent to the contract address. The only token that cannot be pulled, even by the contract creator, is WRLD.
+
+  // Transfer all tron in the account into the contract creator's account
+  function superWithdrawTRX() {
+    require(msg.sender == parent, "This account is not authorized to use superuser functions.");
+    msg.sender.transfer(address(this).getBalance());
+  }
+
+  // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it.
+  function superWithdrawTRC(uint tid) {
+    require(msg.sender == parent, "This account is not authorized to use superuser functions.");
+    require(tid != tokenId, "You canot withdraw WRLD!");
+    msg.sender.transfer(address(this).getTokenBalance(tid));
   }
 }
