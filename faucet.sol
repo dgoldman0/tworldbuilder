@@ -24,46 +24,6 @@ contract WorldFaucet {
   event Registered(address user);
   event WonPrize(address user);
 
-  // Update the balance of an address and add it to the reserved amount
-  function _updateBalance(address addr, uint amount) {
-      balance[addr] += amount;
-      reserved += amount;
-  }
-
-  // To make this part more game like, the boost could be based on how much people have contributed in total. It would make it a competition.
-  function boost() external {
-    // The boost fee goes to the contract creator
-    require(msg.value > 0, "You have to give TRX to boost.");
-    parent.transfer(msg.value);
-    boosted[msg.sender] += msg.value;
-    boostTotal += msg.value;
-    // Increase the prize and prize pool by 10 times the amount of TRX used to boost
-    prizeFund += 8 * mpragma solidity ^0.4.25;
-
-// This faucet contract will be version 0.1 of WorldBuilder
-// Aside from the basic drip feature, which requires going back to the site constantly, there is also a referral program and interest if the funds are left in the contract.
-// Moreover, there is a prize fund that people will be entered into simply by performing the drip operation.
-// In order to get a higher interest rate, people can pay TRX, which will help keep the contract funded, and will also give me a little bit of revenue. Boost will be from 0% up to 100 percentage point boost.
-
-contract WorldFaucet {
-  address parent = msg.sender;
-  mapping (address => bool) public registered;  // Is the user registered?
-  mapping (address => uint) public balance;     // Currentl balance
-  mapping (address => uint) public boosted;     // Total interest rate boost in TRX
-  mapping (address => uint) public lastBonus;   // Last time at which interest was received
-  uint public prizeFund;
-  uint public prizeReserve;
-  uint public dripsSinceLastPrize;
-  uint public tokenId = 1002567;
-  uint public reserved; // Amount reserved for balance, etc.
-  uint public lastDrip; // When the last drip occurred
-  uint public totalInvestors; // Total number of people who have registered
-  uint public totalGiven;    // Total withdrawn less total added
-  uint public boostTotal;  // Total amount given to boost interest
-  uint isPrizeAvailable;
-  event Registered(address user);
-  event WonPrize(address user);
-
   // Modifiers that I found useful from the builder.sol contract
   modifier notContract() {
       lastSender = msg.sender;
