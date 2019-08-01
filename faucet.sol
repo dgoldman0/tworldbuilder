@@ -192,13 +192,13 @@ contract WorldFaucet {
   // Functions to pull tokens and TRX that might accidentally be sent to the contract address. The only token that cannot be pulled, even by the contract creator, is WRLD.
 
   // Transfer all tron in the account into the contract creator's account
-  function superWithdrawTRX() external payable {
+  function superWithdrawTRX() external {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
     msg.sender.transfer(address(this).getBalance());
   }
 
   // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it, under most conditions...
-  function superWithdrawTRC(uint tid) external payable {
+  function superWithdrawTRC(uint tid) external {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
 
     // If the contract is inactive for over ONE WEEK, then the parent address can withdraw WRLD!
