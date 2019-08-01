@@ -8,6 +8,7 @@ pragma solidity ^0.4.25;
 contract WorldFaucet {
   address parent = msg.sender;
   mapping (address => bool) public registered; // Is the user registered?
+  mapping (address => address) public referrers; // Referrals
   mapping (address => uint) public balance;    // Currentl balance
   mapping (address => uint) public boosted;    // Total interest rate boost in TRX
   mapping (address => uint) public lastDrop;   // Last time at which drop was received
@@ -17,10 +18,10 @@ contract WorldFaucet {
   uint public tokenId = 1002567;
   uint public reserved; // Amount reserved for balance, etc.
   uint public lastDrip; // When the last drip occurred
-  uint public totalInvestors; // Total number of people who have registered
+  uint public totalPlayers; // Total number of people who have registered
   uint public totalGiven;    // Total withdrawn less total added
   uint public boostTotal;  // Total amount given to boost interest
-  uint isPrizeAvailable;
+  bool isPrizeAvailable;
   event Registered(address user);
   event WonPrize(address user);
 
@@ -32,11 +33,11 @@ contract WorldFaucet {
 
   // Return how long until the user can take another drop
   function secondsToNextDrip() public view returns (uint) {
-      return 300 - (now - lastDrop) * 1 seconds;
+      return 300 - ((now - lastDrop[msg.sender]) * 1 seconds);
   }
 
   // How long it's been since a user has taken a drop, which also counts as the size of the drip
-  function secondsFromLastDrip() public view returns (uint) {
+  function secondsSinceLastDrip() public view returns (uint) {
       return (now - lastDrip) * 1 seconds;
   }
 
@@ -50,10 +51,10 @@ contract WorldFaucet {
     boostTotal += msg.value;
     // Increase the prize and prize pool by 10 times the amount of TRX used to boost
     prizeFund += 8 * msg.value;
-    reserveFund += 2 * msg.value;
+    prizeReserve += 2 * msg.value;
   }
 
-  function getBalance() public view returns (uint) {
+  function getMyBalance() public view returns (uint) {
       return balance[msg.sender];
   }
 
@@ -69,7 +70,7 @@ contract WorldFaucet {
     return _getBoost(msg.sender);
   }
 
-  function _getBoost(address user) {
+  function _getBoost(address user) returns (uint) {
     // Calculate boost percentage, up to 100 percentage points
     // User Contribution % : Bonus
     // 100%   : 100%
@@ -77,29 +78,29 @@ contract WorldFaucet {
     // 25%    : 98%
     // 12.5%  : 97%
     // ...
-    uint boost = 0;
+    uint boost_amt = 0;
     if (boosted[user] > 0) {
-      boost = 100 - (boostTotal / boosted[user] - 1);
-      if (boost < 0) boost = 0;
+      boost_amt = 100 - (boostTotal / boosted[user] - 1);
+      if (boost_amt < 0) boost_amt = 0;
     }
-    return boost;
+    return boost_amt;
   }
 
   // Drip and at the same time calculate interest on stored funds
   // Adding some randomness would make it more game-like
-  function drip(referrerAddress) external {
+  function drip(address referrerAddress) external {
       uint start = now; // Make sure interest, drip, and update all use the same time, since "now" can change during contract execution
       _register(referrerAddress);
       address user = msg.sender;
 
-      uint boost = _getBoost(user);
+      uint boost_amt = _getBoost(user);
 
       // I use seconds to reduce rounding error. One thing to note is that this method updates the interest rate whenever a drip occurs.
       // What this situation means is that compounding occurs more frequently the more often the user ends up using the faucet.
-      uint diff = (start - lastDrop[msg.sender]) * 1 seconds
+      uint diff = (start - lastDrop[msg.sender]) * 1 seconds;
       require(diff > 300, "You have already gotten your drop for the alloted time!"); // Can only drip once every five minutes
 
-      _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
+      _updateBalance(user, balance[user] * (5 + boost_amt) * diff / 31557600 / 100);
 
       uint drop = (start - lastDrip) * 1 seconds;
       _updateBalance(user, max(2, drop));
@@ -115,7 +116,7 @@ contract WorldFaucet {
       prizeReserve += max(drop / 30, 3);
 
       dripsSinceLastPrize++;
-      lastDrip = now;
+      lastDrip = start;
   }
 
   function max(uint a, uint b) private pure returns (uint) {
@@ -130,7 +131,7 @@ contract WorldFaucet {
               referrers[msg.sender] = referrerAddress;
           }
 
-          totalInvestors++;
+          totalPlayers++;
           registered[msg.sender] = true;
           emit Registered(msg.sender);
       }
@@ -152,7 +153,7 @@ contract WorldFaucet {
 
   // Return the available balance of WRLD, taking into account the amount that's reserved and in the prize pools
   function getAvailableBalance() public view returns (uint) {
-    return address(this).tokenBalance(tokenId) - reserved - getPrizeFund - reserveFund;
+    return address(this).tokenBalance(tokenId) - reserved - prizeFund - prizeReserve;
   }
 
   // Pull tokens from the contract
@@ -160,12 +161,12 @@ contract WorldFaucet {
       require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
       uint amount = balance[msg.sender];
       // If there aren't enough tokens available, give what is available.
-      uint max = address(this).tokenBalance(tokenId);
-      if (max < amount)
-        amount = max;
+      uint max_amt = address(this).tokenBalance(tokenId);
+      if (max_amt < amount)
+        amount = max_amt;
 
       if (amount > 0) {
-        balance[msg.sender] = 0;
+        balance[msg.sender] = balance[msg.sender] - amount;
         msg.sender.transferToken(amount, tokenId);
         reserved = reserved - amount;
         totalGiven += amount;
@@ -194,7 +195,7 @@ contract WorldFaucet {
   // Transfer all tron in the account into the contract creator's account
   function superWithdrawTRX() external {
     require(msg.sender == parent, "This account is not authorized to use superuser functions.");
-    msg.sender.transfer(address(this).getBalance());
+    msg.sender.transfer(address(this).balance);
   }
 
   // Transfer total amount of any token that might have accidentally been added to the contract, except WRLD so that the contract creator cannot pull WRLD from the game and kill it, under most conditions...
@@ -203,6 +204,6 @@ contract WorldFaucet {
 
     // If the contract is inactive for over ONE WEEK, then the parent address can withdraw WRLD!
     require(tid != tokenId || (now - lastDrip) * 1 seconds > 604800, "You canot withdraw WRLD!");
-    msg.sender.transfer(address(this).getTokenBalance(tid));
+    msg.sender.transferToken(address(this).tokenBalance(tid), tid);
   }
 }
