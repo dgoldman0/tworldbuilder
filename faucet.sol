@@ -7,10 +7,10 @@ pragma solidity ^0.4.25;
 
 contract WorldFaucet {
   address parent = msg.sender;
-  mapping (address => bool) public registered;  // Is the user registered?
-  mapping (address => uint) public balance;     // Currentl balance
-  mapping (address => uint) public boosted;     // Total interest rate boost in TRX
-  mapping (address => uint) public lastBonus;   // Last time at which interest was received
+  mapping (address => bool) public registered; // Is the user registered?
+  mapping (address => uint) public balance;    // Currentl balance
+  mapping (address => uint) public boosted;    // Total interest rate boost in TRX
+  mapping (address => uint) public lastDrop;   // Last time at which drop was received
   uint public prizeFund;
   uint public prizeReserve;
   uint public dripsSinceLastPrize;
@@ -30,10 +30,21 @@ contract WorldFaucet {
       reserved += amount;
   }
 
+  // Return how long until the user can take another drop
+  function secondsToNextDrip() public view returns (uint) {
+      return 300 - (now - lastDrop) * 1 seconds;
+  }
+
+  // How long it's been since a user has taken a drop, which also counts as the size of the drip
+  function secondsFromLastDrip() public view returns (uint) {
+      return (now - lastDrip) * 1 seconds;
+  }
+
   // To make this part more game like, the boost could be based on how much people have contributed in total. It would make it a competition.
   function boost() external payable {
     // The boost fee goes to the contract creator
     require(msg.value > 0, "You have to give TRX to boost.");
+    require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
     parent.transfer(msg.value);
     boosted[msg.sender] += msg.value;
     boostTotal += msg.value;
@@ -85,14 +96,14 @@ contract WorldFaucet {
 
       // I use seconds to reduce rounding error. One thing to note is that this method updates the interest rate whenever a drip occurs.
       // What this situation means is that compounding occurs more frequently the more often the user ends up using the faucet.
-      uint diff = (start - lastBonus[msg.sender]) * 1 seconds
+      uint diff = (start - lastDrop[msg.sender]) * 1 seconds
       require(diff > 300, "You have already gotten your drop for the alloted time!"); // Can only drip once every five minutes
 
       _updateBalance(user, balance[user] * (5 + boost) * diff / 31557600 / 100);
 
       uint drop = (start - lastDrip) * 1 seconds;
       _updateBalance(user, max(2, drop));
-      lastBonus[user] = start;
+      lastDrop[user] = start;
 
       // Give the referrer one WRLD as a bonus
       if (referrers[msg.sender] != 0x0) {
@@ -127,6 +138,7 @@ contract WorldFaucet {
 
   // If the prize is up for grabs, give it!
   function getPrize() external {
+    require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
     if (checkPrizeAvailable() && prizeFund > 0)
       _getPrizeFund(msg.sender);
   }
@@ -145,6 +157,7 @@ contract WorldFaucet {
 
   // Pull tokens from the contract
   function withdrawTokens() external {
+      require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
       uint amount = balance[msg.sender];
       // If there aren't enough tokens available, give what is available.
       uint max = address(this).tokenBalance(tokenId);
@@ -169,7 +182,7 @@ contract WorldFaucet {
       emit WonPrize(user);
   }
 
-  function register(address referrerAddress) {
+  function register(address referrerAddress) external {
       _register(referrerAddress);
   }
 
