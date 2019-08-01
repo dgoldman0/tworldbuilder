@@ -6,7 +6,7 @@ pragma solidity ^0.4.25;
 // In order to get a higher interest rate, people can pay TRX, which will help keep the contract funded, and will also give me a little bit of revenue. Boost will be from 0% up to 100 percentage point boost.
 
 contract WorldFaucet {
-  address parent;
+  address public parent;
   mapping (address => bool) public registered; // Is the user registered?
   mapping (address => address) public referrers; // Referrals
   mapping (address => uint) public balance;    // Currentl balance
@@ -25,8 +25,8 @@ contract WorldFaucet {
   event Registered(address user);
   event WonPrize(address user);
 
-  function WorldFaucet() {
-    parent = msg.sender
+  function WorldFaucet() public {
+    parent = msg.sender;
     lastdrip = now; // If I don't put this then the first drop would be HUGE!
   }
 
@@ -53,7 +53,7 @@ contract WorldFaucet {
     // The boost fee goes to the contract creator
     require(msg.value > 0, "You have to give TRX to boost.");
     require(registered[msg.sender], "You are not registered. To register, grab a drip from the faucet.");
-    parent.transfer(msg.value);
+    parent.transfer(msg.value); // We get the TRX, and the player gets a bonus!
     boosted[msg.sender] += msg.value;
     boostTotal += msg.value;
     // Increase the prize and prize pool by 10 times the amount of TRX used to boost
