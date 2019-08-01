@@ -24,19 +24,6 @@ contract WorldFaucet {
   event Registered(address user);
   event WonPrize(address user);
 
-  // Modifiers that I found useful from the builder.sol contract
-  modifier notContract() {
-      lastSender = msg.sender;
-      lastOrigin = tx.origin;
-      require(lastSender == lastOrigin);
-      _;
-  }
-
-  modifier onlyOwner() {
-      require(msg.sender == parent);
-      _;
-  }
-
   // Update the balance of an address and add it to the reserved amount
   function _updateBalance(address addr, uint amount) {
       balance[addr] += amount;
@@ -182,7 +169,7 @@ contract WorldFaucet {
       emit WonPrize(user);
   }
 
-  function register(address referrerAddress) external notContract {
+  function register(address referrerAddress) {
       _register(referrerAddress);
   }
 
