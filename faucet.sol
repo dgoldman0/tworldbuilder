@@ -33,7 +33,9 @@ contract WorldFaucet {
 
   // Return how long until the user can take another drop
   function secondsToNextDrip() public view returns (uint) {
-      return 300 - ((now - lastDrop[msg.sender]) * 1 seconds);
+      uint diff = 300 - ((now - lastDrop[msg.sender]) * 1 seconds);
+      if (diff < 0) return 0;
+      return diff;
   }
 
   // How long it's been since a user has taken a drop, which also counts as the size of the drip
