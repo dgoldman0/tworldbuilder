@@ -81,7 +81,7 @@ Cost: 10,000 TRX
 ### Resort
 <img src = "blank.png" width = "150px"></img>
 
-If owning a powerplant isn't enough, then maybe it's time to invest in an entire resort.
+  If owning a powerplant isn't enough, then maybe it's time to invest in an entire resort.
 
 Interest Rate: 120% p.m.
 
@@ -92,4 +92,4 @@ Cost: 100,000 TRX
 Each building will have its own unique stats. To start, there are the building types, like there are in other games. But a building can fall into disrepair. The state of the building will decline, from pristine down to derelict. The condition declines each time profit is taken, except for automatic profit cashing when buying a new building. The worse the condition, the lower the profit. Not only does this mechanic simulate real life, it promotes holding off on taking profit.
 
 # Items
-It would suck if there was no way to repair your buildings. That's why items will be needed. These items can do more than just repair a property though. Some items are consumable, like items that improve the condition of the building. Others will alter the building in other ways. There will be a market to purchase these items using WORLD tokens. However, the most common way to get the items will be to search for them in towns. Each player can go on searches to find items in a town, but each search per day will increase the exhaustion count by one and make it take longer to find anything. 
+It would suck if there was no way to repair your buildings. That's why items will be needed. These items can do more than just repair a property though. Some items are consumable, like items that improve the condition of the building. Others will alter the building in other ways. There will be a market to purchase these items using WORLD tokens. However, the most common way to get the items will be to search for them in towns. Each player can go on searches to find items in a town, but each search per day will increase the exhaustion count by one and make it take longer to find anything.

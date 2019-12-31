@@ -84,7 +84,7 @@ contract WorldBurnerGame is Blacklistable {
   uint public totalPlayers;
   uint public gameEndedAt;
   uint public gameStartedAt;
-  uint public gameLastsFor = 190080; // Initially the game will last for 2.2 days to test.
+  uint public gameLastsFor = 43200; // 0.5 days
   uint public round;
   uint public buyIn;
   uint public totalWon;
@@ -104,8 +104,8 @@ contract WorldBurnerGame is Blacklistable {
     // I also can't find solid documentation on whether things like "now" work when setting the variables at the very beginning, so...
     gameEndedAt = 0;
     gameStartedAt = 0;
-    round = 2;
-    buyIn = 20;
+    round = 0;
+    buyIn = 10;
     lastReclaim = now;
     streamTo = 0x0;
     div = 0;
@@ -146,9 +146,9 @@ contract WorldBurnerGame is Blacklistable {
     msg.sender.transfer(address(this).balance);
   }
 
-  // Do I really want to permanantly burn the tokens? Nah, not yet. Allow the tokens to be reclaimed at a maximum rate of 1% per month.
+  // Do I really want to permanantly burn the tokens? Nah, not yet. Allow the tokens to be reclaimed at a maximum rate of 1% every 30 days.
   function reclaimTokens() isOwner {
-    require((now - lastReclaim) > 864000);
+    require((now - lastReclaim) > 2592000);
     msg.sender.transferToken(address(this).tokenBalance(tokenId) / 100, tokenId);
     lastReclaim = now;
   }
@@ -176,17 +176,12 @@ contract WorldBurnerGame is Blacklistable {
     gameStartedAt = 0;
     highestBurn = 0;
     round++;
-    buyIn += 5 * round;
+    buyIn += round;
 
     uint won = address(this).balance / 2;
     currentWinner.transfer(won); // Send half of the total balance to the winner
     currentWinner = 0x0;
     totalWon += won;
-    // Change length of the game for each new round
-    if (round == 1) gameLastsFor = 0;
-    gameLastsFor += 86400 * round; // Increase the length of the game by one day each round
-    if (gameLastsFor > 2592000)
-      gameLastsFor = 2592000; // Cap the length of a round at 30 days
     emit WonPrize(currentWinner, won);
     checkClaim = false;
   }
@@ -227,7 +222,7 @@ contract WorldBurnerGame is Blacklistable {
         referralBonuses[ref] += buyIn * 1000000/ 20;
       }
       if (totalPlayers < 10) {
-        uint regBonus = (5000 * buyIn) * (10 - totalPlayers) * 100000; // The 100,000 = 1,000,000 / 10
+        uint regBonus = (1000 * buyIn) * (10 - totalPlayers) * 100000; // The 100,000 = 1,000,000 / 10
       }
       totalPlayers++;
       if (gameStartedAt == 0 && totalPlayers > 9) {
@@ -237,6 +232,9 @@ contract WorldBurnerGame is Blacklistable {
       emit Registered(msg.sender);
   }
 
+  function regBonus() public view returns (uint) {
+    return (5000 * buyIn) * (10 - totalPlayers) * 100000;
+  }
   // Burn WRLD. The account with the highest burn at the end of the game wins!
   function burn() external payable returns (bool) {
     require(registered[round][msg.sender]);

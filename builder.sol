@@ -15,7 +15,7 @@ pragma solidity ^0.4.25;
 
 // The current setup does not send any information back with REQUIRE. It probably should. Fail gracefully damn it!
 
-// Contract
+// Contract: Much of this contract will have to be split into two parts, one which can be upgraded and one which cannot be upgraded
 contract WorldBuilder {
     address support = msg.sender;
     address private lastSender;
@@ -112,6 +112,7 @@ contract WorldBuilder {
         }
     }
 
+    // The cost to buy a new building should increase as a town becomes larger, thus simulating limited resources.
     function buyBuilding(address referrerAddress) external payable {
         require(totalInvestors > 25);
         require(_isValidType(msg.value));
@@ -137,7 +138,7 @@ contract WorldBuilder {
 
         // This is used to make profit calculations easier. I guess I'll leave it as is...
         // I think this should be called BEFORE the building is purcahsed though!
-        getAllProfit();
+        getAllProfit(false);
 
         invested[msg.sender][msg.value] += msg.value;
         totalInvested += msg.value;
@@ -163,8 +164,11 @@ contract WorldBuilder {
       return total;
     }
 
-    // Does not currently calculate taxes
     function getAllProfit() internal {
+      getAllProfit(true);
+    }
+    // Does not currently calculate taxes
+    function getAllProfit(bool degrade) internal {
         if (atBlock[msg.sender] > 0) {
             uint max = (address(this).balance - prizeFund - reserveFund) * 9 / 10;
             uint amount = getAllProfitAmount(msg.sender);

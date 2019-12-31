@@ -1,0 +1,11 @@
+- Phase 1
+  - Final organization of initial resources, including software development and graphic design units: Q4 2019
+  - Launch details and begin promotion of the game in order to generate initial interest: Q1 2020
+  - Create token and start distribution
+    - Launch faucet
+  - Get listed on one or more exchanges
+  - Beta testing of the smart contract system and initial development of the front end: Q2 2020
+  - Final testing of the system on Tron test net: Q3 2020
+  - Launch of the game and countdown to 25 referrals: Q4 2020
+- Phase 2
+  - Create phase II charter and project plan: 2021

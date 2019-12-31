@@ -98,6 +98,7 @@ contract WorldBurnerGame is Blacklistable {
   uint public lastReclaim;
   address public streamTo;
   uint8 public div;
+  uint public tokens[];
 
   constructor() public {
     // I know. I don't need these because it defaults to zero, but for some reason I don't feel confident in trusting the default.
@@ -109,6 +110,35 @@ contract WorldBurnerGame is Blacklistable {
     lastReclaim = now;
     streamTo = 0x0;
     div = 0;
+  }
+
+  function addToken(uint tokenid) isOwner {
+    uint len = tokens.length;
+    uint i = 0;
+    uint found;
+    while (i < len && !found) {
+      if (tokens[i] == tokenid) found == true;
+      i++;
+    }
+    if (!found) tokens.push(tokenid);
+  }
+
+  function removeToken(uint tokenid) isOwner {
+    uint len = tokens.length;
+    uint i = 0;
+    uint loc;
+    bool found;
+    while (i < len && !found) {
+      if (tokens[i] == tokenid) {
+        found == true;
+        loc = i;
+      }
+      i++;
+    }
+    if (found) {
+      tokens[loc] = tokens[len - 1];
+      delete tokens[len - 1];
+    }
   }
 
   function setStreamTo(address addr) isOwner {
@@ -132,6 +162,10 @@ contract WorldBurnerGame is Blacklistable {
       return address(this).balance / 2;
   }
 
+  function prizePoolAmount2(uint loc) public view returns (uint) {
+    return address(this).tokenBalance(tokens[loc]) / 2;
+  }
+
   function setPause(bool p) isOwner {
     paused = p;
   }
@@ -149,7 +183,7 @@ contract WorldBurnerGame is Blacklistable {
   // Do I really want to permanantly burn the tokens? Nah, not yet. Allow the tokens to be reclaimed at a maximum rate of 1% per month.
   function reclaimTokens() isOwner {
     require((now - lastReclaim) > 864000);
-    msg.sender.transferToken(address(this).tokenBalance(tokenId) / 100, tokenId);
+    msg.sender.transferToken(address(this).balance / 100, tokenId);
     lastReclaim = now;
   }
   // Returns how many seconds are left until the game ends
@@ -180,6 +214,10 @@ contract WorldBurnerGame is Blacklistable {
 
     uint won = address(this).balance / 2;
     currentWinner.transfer(won); // Send half of the total balance to the winner
+    uint len = tokens.len;
+    for (uint i = 0; i < len; i++) {
+      currentWinner.transfer(address(this).tokenBalance(tokens[i]) / 2);
+    }
     currentWinner = 0x0;
     totalWon += won;
     // Change length of the game for each new round
@@ -225,9 +263,6 @@ contract WorldBurnerGame is Blacklistable {
           referrals[ref]++;
         ref.transfer(buyIn * 1000000 / 20);
         referralBonuses[ref] += buyIn * 1000000/ 20;
-      }
-      if (totalPlayers < 10) {
-        uint regBonus = (5000 * buyIn) * (10 - totalPlayers) * 100000; // The 100,000 = 1,000,000 / 10
       }
       totalPlayers++;
       if (gameStartedAt == 0 && totalPlayers > 9) {
